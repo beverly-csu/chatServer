@@ -18,7 +18,7 @@ void Server::onNewConnection_slot() {
     QTcpSocket* clientSocket = _server->nextPendingConnection();
 
     qint64 descriptor = clientSocket->socketDescriptor();
-    _clientsLogin[descriptor] = "gay";
+    _clientsLogin[descriptor] = "QTUSERNAMEWAIT";
     _clientsSocket[descriptor] = clientSocket;
 
     connect(clientSocket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
@@ -26,16 +26,12 @@ void Server::onNewConnection_slot() {
 
     qDebug() << "Desc: " << descriptor << " Login: " << _clientsLogin[descriptor] << " Socket: " << _clientsSocket[descriptor];
 
-    sendMsgToClient(clientSocket, "You a gay!\n");
+    sendMsgToClient(clientSocket, "You are online!");
 }
 
 
 void Server::sendMsgToClient(QTcpSocket *socket, const QString &msg) {
-    QByteArray byteArray;
-    QDataStream outcomingStream(&byteArray, QIODevice::WriteOnly);
-    outcomingStream.setVersion(QDataStream::Qt_6_0);
-    outcomingStream << "[Server to client] " << msg;
-    socket->write(byteArray);
+    socket->write(msg.toUtf8());
 }
 
 void Server::sendMsgToAll(int descriptor, const QString &msg)
@@ -52,11 +48,15 @@ void Server::sendMsgToAll(int descriptor, const QString &msg)
 
 void Server::readyReadClient_slot() {
     QTcpSocket* clientSocket = (QTcpSocket*)sender();
+    QByteArray data = clientSocket->readAll();
 
-    QString str = clientSocket->readAll();
-    qDebug() << "[Client" << clientSocket->socketDescriptor() << "]" << str;
-    QString answer = "[Server Response] Received " + str + "\n";
-    sendMsgToClient(clientSocket, answer);
+    QString str(data);
+    if (_clientsLogin[clientSocket->socketDescriptor()] == "QTUSERNAMEWAIT") {
+        _clientsLogin[clientSocket->socketDescriptor()] = str;
+    }
+    qDebug() << "[Client" << clientSocket->socketDescriptor() << "\b]" << str;
+    QString answer = "[Server Response]" + str + "\n";
+    //sendMsgToClient(clientSocket, answer);
     sendMsgToAll(clientSocket->socketDescriptor(), str);
 }
 
